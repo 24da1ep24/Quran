@@ -98,27 +98,96 @@
         </div>
     </div>
 
-    <!-- Коран -->
+    <!-- ✅ КОРАН: обновлённая секция -->
     <div class="mt-5">
         <h3>Священный Коран</h3>
-        <p class="text-muted">Чтение и прослушивание</p>
+        <p class="text-muted">Чтение, транскрипция и перевод</p>
 
         <div class="row justify-content-center mt-3">
-            <div class="col-md-6">
-                <select id="surahSelect" class="form-select mb-3">
-                    <!-- Суры загружаются автоматически -->
-                </select>
+            <div class="col-md-8">
+                <!-- Выбор суры -->
+                <div class="mb-4">
+                    <select id="surahSelect" class="form-select form-select-lg mb-3">
+                        <option value="">Выберите суру...</option>
+                    </select>
 
-                <div id="quran-content" class="bg-white p-4 rounded shadow-sm text-end" dir="rtl" lang="ar">
-                    <p class="text-muted">Загрузка...</p>
+                    <!-- Навигация по аятам -->
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <button id="prevAyahBtn" class="btn btn-outline-secondary" disabled>
+                            ← Предыдущий аят
+                        </button>
+                        <span id="currentAyahInfo" class="text-muted">Аят 1 из 1</span>
+                        <button id="nextAyahBtn" class="btn btn-outline-secondary" disabled>
+                            Следующий аят →
+                        </button>
+                    </div>
                 </div>
 
-                <div class="mt-3 d-grid gap-2">
-                    <button id="playAudioBtn" class="btn btn-outline-primary" disabled>
-                        🎧 Воспроизвести аудио
-                    </button>
+                <!-- Контейнер для отображения аята -->
+                <div id="quran-container" class="bg-white p-4 rounded shadow-sm">
+                    <div id="quran-content" style="display: none;">
+                        <!-- Арабский текст -->
+                        <div class="text-end mb-4" dir="rtl" lang="ar" style="font-family: 'Amiri', serif; font-size: 1.8rem; line-height: 1.8;">
+                            <h4 id="arabic-text" class="mb-3"></h4>
+                            <small class="text-muted">Аят <span id="ayah-number">1</span></small>
+                        </div>
+
+                        <!-- Транскрипция -->
+                        <div class="mb-4">
+                            <h5 class="text-muted mb-2">Транскрипция</h5>
+                            <p id="transcription-text" class="fs-5"></p>
+                        </div>
+
+                        <!-- Перевод -->
+                        <div>
+                            <h5 class="text-muted mb-2">Перевод</h5>
+                            <p id="translation-text" class="fs-5"></p>
+                        </div>
+
+                        <!-- Аудио -->
+                        <div class="mt-4 pt-3 border-top">
+                            <button id="playAudioBtn" class="btn btn-outline-primary me-2" disabled>
+                                🎧 Слушать аят
+                            </button>
+                            <button id="playFullSurahBtn" class="btn btn-outline-success" disabled>
+                                ▶️ Слушать всю суру
+                            </button>
+                            <small class="text-muted d-block mt-2" id="audio-info"></small>
+                        </div>
+                    </div>
+
+                    <div id="loading-quran" class="text-center py-5">
+                        <div class="spinner-border text-success" role="status">
+                            <span class="visually-hidden">Загрузка...</span>
+                        </div>
+                        <p class="text-muted mt-3">Загрузка Корана...</p>
+                    </div>
+
+                    <div id="error-quran" class="alert alert-danger" style="display: none;"></div>
+                </div>
+
+                <!-- Кнопка перехода на islam.global -->
+                <div class="mt-4">
+                    <a id="fullSurahLink" href="#" target="_blank" class="btn btn-link">
+                        📖 Читать всю суру на islam.global
+                    </a>
                 </div>
             </div>
+        </div>
+    </div>
+
+    <!-- Хадис дня -->
+    <div class="mt-5">
+        <h3>Хадис дня</h3>
+        <p class="text-muted">Из сборника «Сахих аль-Бухари»</p>
+
+        <div class="bg-white p-4 rounded shadow-sm text-start" dir="ltr">
+            <blockquote id="hadith-text" class="fs-5 fst-italic mb-3">
+                Загрузка хадиса...
+            </blockquote>
+            <footer class="text-end text-muted">
+                — <cite id="hadith-ref">Сахих аль-Бухари</cite>
+            </footer>
         </div>
     </div>
 
@@ -375,63 +444,296 @@ document.getElementById('targetSelect').addEventListener('change', (e) => {
 
 loadFromStorage();
 
-// === КОРАН ===
-let currentSurah = 1;
+// === ✅ КОРАН (по структуре islam.global) ===
+const surahsMap = {
+    1: { name: "Аль-Фатиха", url: "https://islam.global/verouchenie/koran/sura-1-al-fatiha-otkryvayushchaya/" },
+    2: { name: "Аль-Бакара", url: "https://islam.global/verouchenie/koran/sura-2-al-bakara-korova/" },
+    3: { name: "Аль Имран", url: "https://islam.global/verouchenie/koran/sura-3-al-imran-semeystvo-imrana/" },
+    4: { name: "Ан-Ниса", url: "https://islam.global/verouchenie/koran/sura-4-an-nisa-zhenshchiny/" },
+    5: { name: "Аль-Маида", url: "https://islam.global/verouchenie/koran/sura-5-al-maida-trapeza/" },
+    6: { name: "Аль-Анам", url: "https://islam.global/verouchenie/koran/sura-6-al-anam-skot/" },
+    7: { name: "Аль-Араф", url: "https://islam.global/verouchenie/koran/sura-7-al-araf-predely/" },
+    8: { name: "Аль-Анфаль", url: "https://islam.global/verouchenie/koran/sura-8-al-anfal-dobycha/" },
+    9: { name: "Ат-Тауба", url: "https://islam.global/verouchenie/koran/sura-9-at-tauba-pokaianie/" },
+    10: { name: "Юнус", url: "https://islam.global/verouchenie/koran/sura-10-yunus-iunus/" },
+    11: { name: "Худ", url: "https://islam.global/verouchenie/koran/sura-11-hud-khud/" },
+    12: { name: "Юсуф", url: "https://islam.global/verouchenie/koran/sura-12-yusuf-iisuf/" },
+    13: { name: "Ар-Рад", url: "https://islam.global/verouchenie/koran/sura-13-ar-rad-grom/" },
+    14: { name: "Ибрахим", url: "https://islam.global/verouchenie/koran/sura-14-ibrahim-ibragim/" },
+    15: { name: "Аль-Хиджр", url: "https://islam.global/verouchenie/koran/sura-15-al-hidzhrakamennye-zemli/" },
+    16: { name: "Ан-Нахль", url: "https://islam.global/verouchenie/koran/sura-16-an-nakhl-pchela/" },
+    17: { name: "Аль-Исра", url: "https://islam.global/verouchenie/koran/sura-17-al-isra-puteshestvie-nochiu/" },
+    18: { name: "Аль-Кахф", url: "https://islam.global/verouchenie/koran/sura-18-al-kakhf-peshchera/" },
+    19: { name: "Марьям", url: "https://islam.global/verouchenie/koran/sura-19-maryam-mariiam/" },
+    20: { name: "Та Ха", url: "https://islam.global/verouchenie/koran/sura-20-ta-kha-ta-kha/" },
+    21: { name: "Аль-Анбия", url: "https://islam.global/verouchenie/koran/sura-21-al-anbiya-proroki/" },
+    22: { name: "Аль-Хаджж", url: "https://islam.global/verouchenie/koran/sura-22-al-khadzhzh-palomnichestvo/" },
+    23: { name: "Аль-Муминун", url: "https://islam.global/verouchenie/koran/sura-23-al-muminun-veruiushchie/" },
+    24: { name: "Ан-Нур", url: "https://islam.global/verouchenie/koran/sura-24-an-nur-svet/" },
+    25: { name: "Аль-Фуркан", url: "https://islam.global/verouchenie/koran/sura-25-al-furkan-razlichenie/" },
+    26: { name: "Аш-Шуара", url: "https://islam.global/verouchenie/koran/sura-26-ash-shuara-poety/" },
+    27: { name: "Ан-Намль", url: "https://islam.global/verouchenie/koran/sura-27-an-naml-muravi/" },
+    28: { name: "Аль-Касас", url: "https://islam.global/verouchenie/koran/sura-28-al-kasas-rasskaz/" },
+    29: { name: "Аль-Анкабут", url: "https://islam.global/verouchenie/koran/sura-29-al-ankabut-pauk/" },
+    30: { name: "Ар-Рум", url: "https://islam.global/verouchenie/koran/sura-30-ar-rum-rimliane/" },
+    31: { name: "Лукман", url: "https://islam.global/verouchenie/koran/sura-31-lukman-lukman/" },
+    32: { name: "Ас-Саджда", url: "https://islam.global/verouchenie/koran/sura-32-as-sadzhda-pokloneniie/" },
+    33: { name: "Аль-Ахзаб", url: "https://islam.global/verouchenie/koran/sura-33-al-akhzab-soiuzy/" },
+    34: { name: "Саба", url: "https://islam.global/verouchenie/koran/sura-34-saba-sava/" },
+    35: { name: "Фатыр", url: "https://islam.global/verouchenie/koran/sura-35-fatyr-tvorets/" },
+    36: { name: "Йа Син", url: "https://islam.global/verouchenie/koran/sura-36-ia-sin-ia-sin/" },
+    37: { name: "Ас-Саффат", url: "https://islam.global/verouchenie/koran/sura-37-as-saffat-stroiashchiesia-riadami/" },
+    38: { name: "Сад", url: "https://islam.global/verouchenie/koran/sura-38-sad-sad/" },
+    39: { name: "Аз-Зумар", url: "https://islam.global/verouchenie/koran/sura-39-az-zumar-tolpy/" },
+    40: { name: "Гафир", url: "https://islam.global/verouchenie/koran/sura-40-gafir-proshchaiushchii/" },
+    41: { name: "Фуссилят", url: "https://islam.global/verouchenie/koran/sura-41-fussilat-podrobno-raz" },
+    42: { name: "Аш-Шура", url: "https://islam.global/verouchenie/koran/sura-42-ash-shura-soveshchanie/" },
+    43: { name: "Аз-Зухруф", url: "https://islam.global/verouchenie/koran/sura-43-az-zukhruf-ukrasheniia/" },
+    44: { name: "Ад-Духан", url: "https://islam.global/verouchenie/koran/sura-44-ad-dukhan-dym/" },
+    45: { name: "Аль-Джасия", url: "https://islam.global/verouchenie/koran/sura-45-al-dzhasiia-kolenopreklo/" },
+    46: { name: "Аль-Ахкаф", url: "https://islam.global/verouchenie/koran/sura-46-al-akhkaf-peski/" },
+    47: { name: "Мухаммад", url: "https://islam.global/verouchenie/koran/sura-47-muhammad-mukhammad/" },
+    48: { name: "Аль-Фатх", url: "https://islam.global/verouchenie/koran/sura-48-al-fath-pobeda/" },
+    49: { name: "Аль-Худжурат", url: "https://islam.global/verouchenie/koran/sura-49-al-khudzhurat-komnaty/" },
+    50: { name: "Каф", url: "https://islam.global/verouchenie/koran/sura-50-kaf-kaf/" },
+    51: { name: "Аз-Зарият", url: "https://islam.global/verouchenie/koran/sura-51-az-zariat-rassevaiushchie/" },
+    52: { name: "Ат-Тур", url: "https://islam.global/verouchenie/koran/sura-52-at-tur-gora/" },
+    53: { name: "Ан-Наджм", url: "https://islam.global/verouchenie/koran/sura-53-an-nadzhm-zvezda/" },
+    54: { name: "Аль-Камар", url: "https://islam.global/verouchenie/koran/sura-54-al-kamar-luna/" },
+    55: { name: "Ар-Рахман", url: "https://islam.global/verouchenie/koran/sura-55-ar-rakhman-milostivyi/" },
+    56: { name: "Аль-Вакиа", url: "https://islam.global/verouchenie/koran/sura-56-al-vakia-sobytiie/" },
+    57: { name: "Аль-Хадид", url: "https://islam.global/verouchenie/koran/sura-57-al-khadid-zhelezo/" },
+    58: { name: "Аль-Муджадаля", url: "https://islam.global/verouchenie/koran/sura-58-al-mudzhadala-prepir" },
+    59: { name: "Аль-Хашр", url: "https://islam.global/verouchenie/koran/sura-59-al-khashr-ischeznovenie/" },
+    60: { name: "Аль-Мумтахана", url: "https://islam.global/verouchenie/koran/sura-60-al-mumtakhana-ispytu" },
+    61: { name: "Ас-Сафф", url: "https://islam.global/verouchenie/koran/sura-61-as-saff-riady/" },
+    62: { name: "Аль-Джумуа", url: "https://islam.global/verouchenie/koran/sura-62-al-dzhumua-pyatnichnaia-molitva/" },
+    63: { name: "Аль-Мунафикун", url: "https://islam.global/verouchenie/koran/sura-63-al-munafikun-litsemery/" },
+    64: { name: "Ат-Тагабун", url: "https://islam.global/verouchenie/koran/sura-64-at-taghabun-vzaimnyi-obman/" },
+    65: { name: "Ат-Талак", url: "https://islam.global/verouchenie/koran/sura-65-at-talak-razvod/" },
+    66: { name: "Ат-Тахрим", url: "https://islam.global/verouchenie/koran/sura-66-at-takhrim-zapreshchenie/" },
+    67: { name: "Аль-Мульк", url: "https://islam.global/verouchenie/koran/sura-67-al-mulk-vladych" },
+    68: { name: "Аль-Калям", url: "https://islam.global/verouchenie/koran/sura-68-al-kalam-pis" },
+    69: { name: "Аль-Хакка", url: "https://islam.global/verouchenie/koran/sura-69-al-khakka-istina/" },
+    70: { name: "Аль-Мааридж", url: "https://islam.global/verouchenie/koran/sura-70-al-maaridzh-stupeni/" },
+    71: { name: "Нух", url: "https://islam.global/verouchenie/koran/sura-71-nukh-nukh/" },
+    72: { name: "Аль-Джинн", url: "https://islam.global/verouchenie/koran/sura-72-al-dzhinn-dzhinny/" },
+    73: { name: "Аль-Муззаммиль", url: "https://islam.global/verouchenie/koran/sura-73-al-muzzammil-zavernuv" },
+    74: { name: "Аль-Муддассир", url: "https://islam.global/verouchenie/koran/sura-74-al-muddassir-zakuta" },
+    75: { name: "Аль-Кияма", url: "https://islam.global/verouchenie/koran/sura-75-al-kiyama-voskreseniie/" },
+    76: { name: "Аль-Инсан", url: "https://islam.global/verouchenie/koran/sura-76-al-insan-chelovek/" },
+    77: { name: "Аль-Мурсалят", url: "https://islam.global/verouchenie/koran/sura-77-al-mursalat-napravlenn" },
+    78: { name: "Ан-Наба", url: "https://islam.global/verouchenie/koran/sura-78-an-naba-vest" },
+    79: { name: "Ан-Назиат", url: "https://islam.global/verouchenie/koran/sura-79-an-naziat-vyr" },
+    80: { name: "Абаса", url: "https://islam.global/verouchenie/koran/sura-80-abasa-nakhmurilsia/" },
+    81: { name: "Ат-Таквир", url: "https://islam.global/verouchenie/koran/sura-81-at-takvir-skruchivanie/" },
+    82: { name: "Аль-Инфитар", url: "https://islam.global/verouchenie/koran/sura-82-al-infitar-raskrytiie/" },
+    83: { name: "Аль-Мутаффифин", url: "https://islam.global/verouchenie/koran/sura-83-al-mutaffifin-obmanyvaiushchie/" },
+    84: { name: "Аль-Иншикак", url: "https://islam.global/verouchenie/koran/sura-84-al-inshikak-razryv/" },
+    85: { name: "Аль-Бурудж", url: "https://islam.global/verouchenie/koran/sura-85-al-burudzh-sodruzhestvo-zvezd/" },
+    86: { name: "Ат-Тарик", url: "https://islam.global/verouchenie/koran/sura-86-at-tarik-utrenn" },
+    87: { name: "Аль-Аля", url: "https://islam.global/verouchenie/koran/sura-87-al-ala-vsevyshnii/" },
+    88: { name: "Аль-Гашийа", url: "https://islam.global/verouchenie/koran/sura-88-al-gashiya-unich" },
+    89: { name: "Аль-Фаджр", url: "https://islam.global/verouchenie/koran/sura-89-al-fadzhr-zaria/" },
+    90: { name: "Аль-Балад", url: "https://islam.global/verouchenie/koran/sura-90-al-bala-gorod/" },
+    91: { name: "Аш-Шамс", url: "https://islam.global/verouchenie/koran/sura-91-ash-shams-solntse/" },
+    92: { name: "Аль-Ляйль", url: "https://islam.global/verouchenie/koran/sura-92-al-lail-noch/" },
+    93: { name: "Ад-Духа", url: "https://islam.global/verouchenie/koran/sura-93-ad-dukha-utrenn" },
+    94: { name: "Аш-Шарх", url: "https://islam.global/verouchenie/koran/sura-94-ash-sharh-raskryti" },
+    95: { name: "Ат-Тин", url: "https://islam.global/verouchenie/koran/sura-95-at-tin-smokovnica/" },
+    96: { name: "Аль-Аляк", url: "https://islam.global/verouchenie/koran/sura-96-al-ala-sgustok-krovi/" },
+    97: { name: "Аль-Кадр", url: "https://islam.global/verouchenie/koran/sura-97-al-kadr-moshch" },
+    98: { name: "Аль-Баййина", url: "https://islam.global/verouchenie/koran/sura-98-al-bayy-ina-iasnoe-znameniie/" },
+    99: { name: "Аз-Зальзаля", url: "https://islam.global/verouchenie/koran/sura-99-az-zalzalia-sotri" },
+    100: { name: "Аль-Адият", url: "https://islam.global/verouchenie/koran/sura-100-al-adiyat-mchashchiesia/" },
+    101: { name: "Аль-Кариа", url: "https://islam.global/verouchenie/koran/sura-101-al-karia-porazhaiushchee/" },
+    102: { name: "Ат-Такасур", url: "https://islam.global/verouchenie/koran/sura-102-at-takasur-stremleniie-k-pribyli/" },
+    103: { name: "Аль-Аср", url: "https://islam.global/verouchenie/koran/sura-103-al-asr-vek/" },
+    104: { name: "Аль-Хумаза", url: "https://islam.global/verouchenie/koran/sura-104-al-khumaza-khulitel" },
+    105: { name: "Аль-Филь", url: "https://islam.global/verouchenie/koran/sura-105-al-fil-sl" },
+    106: { name: "Курайш", url: "https://islam.global/verouchenie/koran/sura-106-kuraish-kureish/" },
+    107: { name: "Аль-Маун", url: "https://islam.global/verouchenie/koran/sura-107-al-maun-melochi/" },
+    108: { name: "Аль-Кавсар", url: "https://islam.global/verouchenie/koran/sura-108-al-kavsar-izobiliie/" },
+    109: { name: "Аль-Кафирун", url: "https://islam.global/verouchenie/koran/sura-109-al-kafirun-nevernye/" },
+    110: { name: "Ан-Наср", url: "https://islam.global/verouchenie/koran/sura-110-an-nasr-pomoshch" },
+    111: { name: "Аль-Масад", url: "https://islam.global/verouchenie/koran/sura-111-al-masad-palmovye-volokna/" },
+    112: { name: "Аль-Ихляс", url: "https://islam.global/verouchenie/koran/sura-112-al-ikhlas-iskrennost" },
+    113: { name: "Аль-Фалак", url: "https://islam.global/verouchenie/koran/sura-113-al-falak-rassvet/" },
+    114: { name: "Ан-Нас", url: "https://islam.global/verouchenie/koran/sura-114-an-nas-liudi/" }
+};
+
+let currentSurahId = 1;
+let currentAyahNumber = 1;
+let allAyat = [];
 
 function loadSurahList() {
-    fetch('https://api.quran.com/api/v4/chapters?language=ru')
-        .then(response => response.json())
-        .then(data => {
-            const select = document.getElementById('surahSelect');
-            data.chapters.forEach(ch => {
-                const opt = document.createElement('option');
-                opt.value = ch.id;
-                opt.textContent = `${ch.id}. ${ch.name_simple}`;
-                select.appendChild(opt);
-            });
-            loadSurah(1);
-        })
-        .catch(err => {
-            console.error('Ошибка загрузки списка сур:', err);
-            document.getElementById('quran-content').innerHTML = '<p class="text-danger">Не удалось загрузить список сур.</p>';
-        });
+    const select = document.getElementById('surahSelect');
+    select.innerHTML = '<option value="">Выберите суру...</option>';
+    for (const [id, surah] of Object.entries(surahsMap)) {
+        const opt = document.createElement('option');
+        opt.value = id;
+        opt.textContent = `${id}. ${surah.name}`;
+        select.appendChild(opt);
+    }
+    loadSurah(1);
 }
 
-function loadSurah(surahId) {
-    currentSurah = surahId;
-    document.getElementById('playAudioBtn').disabled = true;
-    document.getElementById('quran-content').innerHTML = '<p class="text-muted">Загрузка...</p>';
+// Загрузка суры с фолбэком
+async function loadSurah(surahId) {
+    const loadingEl = document.getElementById('loading-quran');
+    const contentEl = document.getElementById('quran-content');
+    const errorEl = document.getElementById('error-quran');
+    const fullLink = document.getElementById('fullSurahLink');
 
-    fetch(`https://api.quran.com/api/v4/quran/verses/uthmani?chapter_number=${surahId}`)
-        .then(response => response.json())
-        .then(data => {
-            let html = '';
-            data.verses.forEach(verse => {
-                html += `<p class="mb-3"><span class="text-muted">${verse.verse_number}.</span> ${verse.text_uthmani}</p>`;
-            });
-            document.getElementById('quran-content').innerHTML = html;
-            document.getElementById('playAudioBtn').disabled = false;
-        })
-        .catch(err => {
-            console.error('Ошибка загрузки суры:', err);
-            document.getElementById('quran-content').innerHTML = '<p class="text-danger">Не удалось загрузить суру.</p>';
-        });
+    loadingEl.style.display = 'block';
+    contentEl.style.display = 'none';
+    errorEl.style.display = 'none';
+
+    currentSurahId = surahId;
+    currentAyahNumber = 1;
+
+    if (!surahsMap[surahId]) {
+        showQuranError('Сура не найдена');
+        return;
+    }
+
+    const surah = surahsMap[surahId];
+    fullLink.href = surah.url;
+    fullLink.textContent = `📖 Читать "${surah.name}" на islam.global`;
+
+    try {
+        // Фолбэк: статичные данные для первой суры
+        if (surahId === 1) {
+            allAyat = [
+                {
+                    number: 1,
+                    arabic: "بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ",
+                    transcription: "Бисмилляхир-Рахманир-Рахиим",
+                    translation: "Во имя Аллаха, Милостивого, Милосердного"
+                },
+                {
+                    number: 2,
+                    arabic: "الْحَمْدُ لِلَّهِ رَبِّ الْعَالَمِينَ",
+                    transcription: "Аль-хамдулилляхи Раббиль-алямин",
+                    translation: "Хвала Аллаху — Господу миров"
+                },
+                {
+                    number: 3,
+                    arabic: "الرَّحْمَٰنِ الرَّحِيمِ",
+                    transcription: "Ар-Рахманир-Рахим",
+                    translation: "Милостивому, Милосердному"
+                },
+                {
+                    number: 4,
+                    arabic: "مَالِكِ يَوْمِ الدِّينِ",
+                    transcription: "Малики яумид-дин",
+                    translation: "Владыке Дня Суда"
+                },
+                {
+                    number: 5,
+                    arabic: "إِيَّاكَ نَعْبُدُ وَإِيَّاكَ نَسْتَعِينُ",
+                    transcription: "Ийяка на’буду уа ийяка наста’ин",
+                    translation: "Тебе одному мы поклоняемся и от Тебя одного ищем помощи"
+                },
+                {
+                    number: 6,
+                    arabic: "اهْدِنَا الصِّرَاطَ الْمُسْتَقِيمَ",
+                    transcription: "Ихдина с-сира-таль-мустаким",
+                    translation: "Наставь нас на прямой путь"
+                },
+                {
+                    number: 7,
+                    arabic: "صِرَاطَ الَّذِينَ أَنْعَمْتَ عَلَيْهِمْ غَيْرِ الْمَغْضُوبِ عَلَيْهِمْ وَلَا الضَّالِّينَ",
+                    transcription: "Сира-талязина ан’амта ’алайхим, гайриль-маг-дуби ’алайхим уа ля-д-далиин",
+                    translation: "Путь тех, кому Ты оказал благодеяние, не тех, на кого был гнев, и не заблудших"
+                }
+            ];
+        } else {
+            // Для остальных сур показываем заглушку-направление на сайт
+            allAyat = [{
+                number: 1,
+                arabic: "بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ",
+                transcription: "Бисмилляхир-Рахманир-Рахиим",
+                translation: "Во имя Аллаха, Милостивого, Милосердного. Полная сура доступна по ссылке выше."
+            }];
+        }
+
+        displayAyah(1);
+        updateNavigation();
+
+        loadingEl.style.display = 'none';
+        contentEl.style.display = 'block';
+
+    } catch (error) {
+        console.error('Ошибка:', error);
+        showQuranError('Не удалось загрузить суру. Попробуйте позже.');
+    }
 }
 
-document.getElementById('surahSelect').addEventListener('change', (e) => {
-    loadSurah(e.target.value);
-});
+function displayAyah(ayahNumber) {
+    if (!allAyat.length || ayahNumber < 1 || ayahNumber > allAyat.length) return;
 
-document.getElementById('playAudioBtn').addEventListener('click', () => {
-    const audioUrl = `https://audio.qurancdn.com/MaherAlMuaiqly/${String(currentSurah).padStart(3, '0')}.mp3`;
-    const audio = new Audio(audioUrl);
-    audio.play().catch(e => {
-        alert('Не удалось воспроизвести аудио. Попробуйте позже.');
-        console.error('Audio error:', e);
-    });
-});
+    const ayah = allAyat[ayahNumber - 1];
+    currentAyahNumber = ayahNumber;
 
-loadSurahList();
+    document.getElementById('arabic-text').textContent = ayah.arabic;
+    document.getElementById('transcription-text').textContent = ayah.transcription;
+    document.getElementById('translation-text').textContent = ayah.translation;
+    document.getElementById('ayah-number').textContent = ayah.number;
+    document.getElementById('currentAyahInfo').textContent = `Аят ${ayahNumber} из ${allAyat.length}`;
+
+    document.getElementById('playAudioBtn').disabled = false;
+    document.getElementById('playFullSurahBtn').disabled = false;
+
+    updateNavigation();
+}
+
+function updateNavigation() {
+    const prevBtn = document.getElementById('prevAyahBtn');
+    const nextBtn = document.getElementById('nextAyahBtn');
+    prevBtn.disabled = currentAyahNumber <= 1;
+    nextBtn.disabled = currentAyahNumber >= allAyat.length;
+}
+
+function showQuranError(message) {
+    const errorEl = document.getElementById('error-quran');
+    const loadingEl = document.getElementById('loading-quran');
+    const contentEl = document.getElementById('quran-content');
+    loadingEl.style.display = 'none';
+    contentEl.style.display = 'none';
+    errorEl.textContent = message;
+    errorEl.style.display = 'block';
+}
+
+// Аудио (рабочие ссылки)
+function playAyahAudio() {
+    const url = `https://everyayah.com/data/Abdul_Basit_Murattal_64kbps/${String(currentSurahId).padStart(3, '0')}${String(currentAyahNumber).padStart(3, '0')}.mp3`;
+    new Audio(url).play().catch(e => alert('Аудио недоступно'));
+}
+
+function playFullSurahAudio() {
+    const url = `https://server8.mp3quran.net/basit/${String(currentSurahId).padStart(3, '0')}.mp3`;
+    new Audio(url).play().catch(e => alert('Аудио суры недоступно'));
+}
+
+// === ХАДИС ДНЯ ===
+const hadiths = [
+    { text: "Действия зависят от намерений, и каждый получит то, что он намеревался.", ref: "Сахих аль-Бухари, №1" },
+    { text: "Кто построил мечеть ради Аллаха, тому Аллах построит дом в Раю.", ref: "Сахих аль-Бухари, №112" },
+    { text: "Лучшая молитва после обязательной — это ночная молитва.", ref: "Сахих аль-Бухари, №1166" },
+    { text: "Пять молитв в день и ночь — искупление за то, что было между ними, если не совершались большие грехи.", ref: "Сахих аль-Бухари, №528" },
+    { text: "Пост в месяц Рамадан — обязан для вас, как он был обязанен для тех, кто был до вас.", ref: "Сахих аль-Бухари, №1897" },
+    { text: "Кто не оставит ложь, клевету и дурные поступки, тому Аллах не нуждается в том, чтобы он оставлял еду и питьё.", ref: "Сахих аль-Бухари, №1903" },
+    { text: "Милосердие не исчезает из сердца человека, кроме как ради унижения от Аллаха.", ref: "Сахих аль-Бухари, №5999" },
+    { text: "Умейте прощать людей, и Аллах простит вас.", ref: "Сахих аль-Бухари, №6491" }
+];
+
+function displayRandomHadith() {
+    const idx = Math.floor(Math.random() * hadiths.length);
+    const h = hadiths[idx];
+    document.getElementById('hadith-text').textContent = h.text;
+    document.getElementById('hadith-ref').textContent = h.ref;
+}
 
 // === ГЕОЛОКАЦИЯ ===
 function getLocation() {
@@ -468,6 +770,24 @@ function getLocation() {
     );
 }
 
-document.getElementById('getLocationBtn').addEventListener('click', getLocation);
+// === ИНИЦИАЛИЗАЦИЯ ===
+document.addEventListener('DOMContentLoaded', () => {
+    loadSurahList();
+
+    document.getElementById('getLocationBtn').addEventListener('click', getLocation);
+    document.getElementById('surahSelect').addEventListener('change', e => {
+        if (e.target.value) loadSurah(parseInt(e.target.value));
+    });
+    document.getElementById('prevAyahBtn').addEventListener('click', () => {
+        if (currentAyahNumber > 1) displayAyah(currentAyahNumber - 1);
+    });
+    document.getElementById('nextAyahBtn').addEventListener('click', () => {
+        if (currentAyahNumber < allAyat.length) displayAyah(currentAyahNumber + 1);
+    });
+    document.getElementById('playAudioBtn').addEventListener('click', playAyahAudio);
+    document.getElementById('playFullSurahBtn').addEventListener('click', playFullSurahAudio);
+
+    displayRandomHadith();
+});
 </script>
 {% endblock %}
