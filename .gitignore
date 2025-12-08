@@ -1,38 +1,41 @@
-```gitignore
-# Python
-__pycache__/
+```
+# Compiled and build artifacts
 *.pyc
-*.pyo
-*.pyd
+__pycache__/
 
-# Django
+# Dependencies
+.venv/
+venv/
+node_modules/
+
+# Logs and temp files
 *.log
-local_settings.py
-db.sqlite3
-db.sqlite3-journal
-
-# Static files
-staticfiles/
-media/
+*.tmp
+*.swp
 
 # Environment
 .env
 .env.local
-.env.*
+*.env.*
 
-# Dependencies
-venv/
-.venv/
-env/
-ENV/
-
-# IDE
+# Editors
 .vscode/
 .idea/
-*.swp
-*.swo
 
-# OS
-.DS_Store
-Thumbs.db
+# Coverage
+.coverage
+coverage/
+htmlcov/
+
+# Python specific
+*.pyc
+__pycache__/
+*.pyo
+*.pyd
+.Python
+*.so
+
+# Testing
+.pytest_cache/
+.mypy_cache/
 ```
